@@ -1,196 +1,179 @@
 "use client";
 
-import { NutritionData } from "@/app/api/nutrition/route";
+interface Micronutrients {
+  sodium: string;
+  potassium: string;
+  calcium: string;
+  iron: string;
+  vitaminA: string;
+  vitaminC: string;
+}
 
-interface Prediction {
-  label: string;
-  score: number;
-  displayName: string;
-  allPredictions?: Array<{ label: string; score: number }>;
+interface FoodDetectItem {
+  name: string;
+  portion: string;
+  calories: string;
+  protein: string;
+  carbs: string;
+  fats: string;
+  fiber: string;
+  sugar: string;
+  micronutrients: Micronutrients;
 }
 
 interface ResultCardProps {
-  prediction: Prediction;
-  nutrition: NutritionData | null;
-  isLoadingNutrition: boolean;
+  items: FoodDetectItem[];
+  source: "gemini" | "fallback";
 }
 
-const macros = [
-  { key: "calories" as const, label: "Calories", emoji: "🔥", color: "#ff6b35" },
-  { key: "protein" as const, label: "Protein", emoji: "💪", color: "#3b82f6" },
-  { key: "carbs" as const, label: "Carbs", emoji: "🌾", color: "#f59e0b" },
-  { key: "fat" as const, label: "Fat", emoji: "🫒", color: "#10b981" },
+const macroFields = [
+  { key: "calories" as const, label: "Calories", unit: "kcal", color: "#ff6b35" },
+  { key: "protein" as const, label: "Protein", unit: "g", color: "#3b82f6" },
+  { key: "carbs" as const, label: "Carbs", unit: "g", color: "#f59e0b" },
+  { key: "fats" as const, label: "Fats", unit: "g", color: "#10b981" },
+  { key: "fiber" as const, label: "Fiber", unit: "g", color: "#84cc16" },
+  { key: "sugar" as const, label: "Sugar", unit: "g", color: "#ec4899" },
 ];
 
-export default function ResultCard({
-  prediction,
-  nutrition,
-  isLoadingNutrition,
-}: ResultCardProps) {
-  const confidence = Math.round(prediction.score * 100);
+const microFields = [
+  { key: "sodium" as const, label: "Sodium" },
+  { key: "potassium" as const, label: "Potassium" },
+  { key: "calcium" as const, label: "Calcium" },
+  { key: "iron" as const, label: "Iron" },
+  { key: "vitaminA" as const, label: "Vitamin A" },
+  { key: "vitaminC" as const, label: "Vitamin C" },
+];
 
+export default function ResultCard({ items, source }: ResultCardProps) {
   return (
-    <div
+    <section
       className="animate-fade-in flex flex-col gap-4 rounded-2xl p-5"
       style={{ background: "var(--surface)", border: "1px solid var(--border)" }}
     >
-      {/* Food Name */}
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-xs uppercase tracking-widest mb-1" style={{ color: "var(--text-muted)" }}>
-            Detected Food
+            Food Analysis
           </p>
           <h2
             className="font-display text-2xl font-semibold leading-tight"
             style={{ fontFamily: "var(--font-display)" }}
           >
-            {prediction.displayName}
+            {items.length} item{items.length === 1 ? "" : "s"} detected
           </h2>
         </div>
-        <div
-          className="flex flex-col items-end gap-1 shrink-0"
+        <span
+          className="text-xs font-medium px-2 py-1 rounded-full shrink-0"
+          style={{
+            background: "rgba(16,185,129,0.15)",
+            color: "#10b981",
+          }}
         >
-          <span
-            className="text-xs font-medium px-2 py-1 rounded-full"
-            style={{
-              background:
-                confidence >= 80
-                  ? "rgba(16,185,129,0.15)"
-                  : confidence >= 50
-                  ? "rgba(245,158,11,0.15)"
-                  : "rgba(239,68,68,0.15)",
-              color:
-                confidence >= 80
-                  ? "#10b981"
-                  : confidence >= 50
-                  ? "#f59e0b"
-                  : "#ef4444",
-            }}
-          >
-            {confidence}% confident
-          </span>
-          {/* Confidence bar */}
-          <div
-            className="w-20 h-1.5 rounded-full overflow-hidden"
-            style={{ background: "var(--surface-2)" }}
-          >
-            <div
-              className="h-full rounded-full transition-all duration-700"
-              style={{
-                width: `${confidence}%`,
-                background:
-                  confidence >= 80
-                    ? "#10b981"
-                    : confidence >= 50
-                    ? "#f59e0b"
-                    : "#ef4444",
-              }}
-            />
-          </div>
-        </div>
+          {source === "fallback" ? "Fallback" : "Gemini"} result
+        </span>
       </div>
 
-      {/* Divider */}
       <div style={{ height: "1px", background: "var(--border)" }} />
 
-      {/* Nutrition Section */}
-      <div>
-        <div className="flex items-center justify-between mb-3">
-          <p className="text-xs uppercase tracking-widest" style={{ color: "var(--text-muted)" }}>
-            Nutrition per serving
-          </p>
-          {nutrition?.servingSize && (
-            <span className="text-xs" style={{ color: "var(--text-muted)" }}>
-              ~{nutrition.servingSize}
-            </span>
-          )}
-        </div>
-
-        {isLoadingNutrition ? (
-          <div className="grid grid-cols-2 gap-3">
-            {[0, 1, 2, 3].map((i) => (
-              <div
-                key={i}
-                className="skeleton h-20 rounded-xl"
-                style={{ animationDelay: `${i * 0.1}s` }}
-              />
-            ))}
-          </div>
-        ) : nutrition ? (
-          <div className="grid grid-cols-2 gap-3">
-            {macros.map(({ key, label, emoji, color }, idx) => (
-              <div
-                key={key}
-                className="rounded-xl p-3 flex flex-col gap-1 animate-fade-in"
-                style={{
-                  background: "var(--surface-2)",
-                  border: "1px solid var(--border)",
-                  animationDelay: `${idx * 0.08}s`,
-                }}
-              >
-                <div className="flex items-center gap-1.5">
-                  <span style={{ fontSize: "1rem" }}>{emoji}</span>
-                  <span className="text-xs font-medium" style={{ color: "var(--text-muted)" }}>
-                    {label}
-                  </span>
-                </div>
-                <p
-                  className="text-lg font-semibold"
-                  style={{ color, fontFamily: "var(--font-body)" }}
-                >
-                  {nutrition[key]}
-                </p>
-              </div>
-            ))}
-          </div>
-        ) : null}
-
-        {nutrition?.fiber && (
-          <div
-            className="mt-2 px-3 py-2 rounded-xl flex items-center gap-2 text-sm"
-            style={{ background: "var(--surface-2)" }}
+      <div className="flex flex-col gap-4">
+        {items.map((item, index) => (
+          <article
+            key={`${item.name}-${index}`}
+            className="rounded-2xl p-4 animate-fade-in"
+            style={{
+              background: "var(--surface-2)",
+              border: "1px solid var(--border)",
+              animationDelay: `${index * 0.08}s`,
+            }}
           >
-            <span>🥗</span>
-            <span style={{ color: "var(--text-muted)" }}>
-              Fiber: <strong style={{ color: "var(--text)" }}>{nutrition.fiber}</strong>
-            </span>
-          </div>
-        )}
-      </div>
-
-      {/* Other predictions */}
-      {prediction.allPredictions && prediction.allPredictions.length > 1 && (
-        <>
-          <div style={{ height: "1px", background: "var(--border)" }} />
-          <div>
-            <p className="text-xs uppercase tracking-widest mb-2" style={{ color: "var(--text-muted)" }}>
-              Other possibilities
-            </p>
-            <div className="flex flex-col gap-1.5">
-              {prediction.allPredictions.slice(1).map((p) => (
-                <div key={p.label} className="flex items-center gap-2">
-                  <div className="flex-1 h-1 rounded-full overflow-hidden" style={{ background: "var(--border)" }}>
-                    <div
-                      className="h-full rounded-full"
-                      style={{
-                        width: `${Math.round(p.score * 100)}%`,
-                        background: "var(--border)",
-                        filter: "brightness(1.5)",
-                      }}
-                    />
-                  </div>
-                  <span className="text-xs w-24 truncate" style={{ color: "var(--text-muted)" }}>
-                    {p.label.replace(/_/g, " ")}
-                  </span>
-                  <span className="text-xs w-8 text-right" style={{ color: "var(--text-muted)" }}>
-                    {Math.round(p.score * 100)}%
-                  </span>
-                </div>
-              ))}
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-xs uppercase tracking-widest" style={{ color: "var(--text-muted)" }}>
+                  Item {index + 1}
+                </p>
+                <h3
+                  className="text-xl font-semibold leading-tight mt-1"
+                  style={{ fontFamily: "var(--font-display)" }}
+                >
+                  {item.name}
+                </h3>
+              </div>
+              {item.portion && (
+                <span
+                  className="text-xs px-2 py-1 rounded-full text-right"
+                  style={{
+                    color: "var(--text-muted)",
+                    background: "var(--surface)",
+                    border: "1px solid var(--border)",
+                  }}
+                >
+                  {item.portion}
+                </span>
+              )}
             </div>
-          </div>
-        </>
-      )}
-    </div>
+
+            <div className="mt-4">
+              <p className="text-xs uppercase tracking-widest mb-2" style={{ color: "var(--text-muted)" }}>
+                Macro nutrients
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                {macroFields.map(({ key, label, unit, color }) => (
+                  <div
+                    key={key}
+                    className="rounded-xl p-3"
+                    style={{
+                      background: "var(--surface)",
+                      border: "1px solid var(--border)",
+                    }}
+                  >
+                    <p className="text-xs font-medium" style={{ color: "var(--text-muted)" }}>
+                      {label}
+                    </p>
+                    <p className="text-lg font-semibold mt-1" style={{ color }}>
+                      {formatNutritionValue(item[key], unit)}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="mt-4">
+              <p className="text-xs uppercase tracking-widest mb-2" style={{ color: "var(--text-muted)" }}>
+                Micro nutrients
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                {microFields.map(({ key, label }) => (
+                  <div
+                    key={key}
+                    className="flex items-center justify-between gap-2 rounded-xl px-3 py-2 text-sm"
+                    style={{
+                      background: "var(--surface)",
+                      border: "1px solid var(--border)",
+                    }}
+                  >
+                    <span style={{ color: "var(--text-muted)" }}>{label}</span>
+                    <strong className="text-right" style={{ color: "var(--text)" }}>
+                      {item.micronutrients[key] || "N/A"}
+                    </strong>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </article>
+        ))}
+      </div>
+    </section>
   );
+}
+
+function formatNutritionValue(value: string, unit: string) {
+  const trimmedValue = value.trim();
+
+  if (!trimmedValue) {
+    return "N/A";
+  }
+
+  return trimmedValue.toLowerCase().includes(unit.toLowerCase())
+    ? trimmedValue
+    : `${trimmedValue} ${unit}`;
 }

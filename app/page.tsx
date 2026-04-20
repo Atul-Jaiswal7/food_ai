@@ -4,16 +4,36 @@ import { useState } from "react";
 import CameraCapture from "@/app/components/CameraCapture";
 import UploadImage from "@/app/components/UploadImage";
 import ResultCard from "@/app/components/ResultCard";
-import { NutritionData } from "@/app/api/nutrition/route";
 
 type Mode = "upload" | "camera";
 type Step = "idle" | "analyzing" | "done" | "error";
 
-interface Prediction {
-  label: string;
-  score: number;
-  displayName: string;
-  allPredictions?: Array<{ label: string; score: number }>;
+interface Micronutrients {
+  sodium: string;
+  potassium: string;
+  calcium: string;
+  iron: string;
+  vitaminA: string;
+  vitaminC: string;
+}
+
+interface FoodDetectItem {
+  name: string;
+  portion: string;
+  calories: string;
+  protein: string;
+  carbs: string;
+  fats: string;
+  fiber: string;
+  sugar: string;
+  micronutrients: Micronutrients;
+}
+
+interface FoodDetectResponse {
+  success: boolean;
+  source: "gemini" | "fallback";
+  items: FoodDetectItem[];
+  error?: string;
 }
 
 export default function Home() {
@@ -21,9 +41,8 @@ export default function Home() {
   const [step, setStep] = useState<Step>("idle");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [cameraFile, setCameraFile] = useState<File | null>(null);
-  const [prediction, setPrediction] = useState<Prediction | null>(null);
-  const [nutrition, setNutrition] = useState<NutritionData | null>(null);
-  const [isLoadingNutrition, setIsLoadingNutrition] = useState(false);
+  const [foodItems, setFoodItems] = useState<FoodDetectItem[]>([]);
+  const [analysisSource, setAnalysisSource] = useState<"gemini" | "fallback" | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [analyzeStep, setAnalyzeStep] = useState<string>("");
 
@@ -35,46 +54,28 @@ export default function Home() {
 
     setStep("analyzing");
     setErrorMessage(null);
-    setPrediction(null);
-    setNutrition(null);
-    setAnalyzeStep("Identifying food...");
+    setFoodItems([]);
+    setAnalysisSource(null);
+    setAnalyzeStep("Analyzing with Gemini...");
 
     try {
-      // Step 1: Predict
       const formData = new FormData();
       formData.append("image", file);
 
-      const predictRes = await fetch("/api/predict", {
+      const foodDetectRes = await fetch("/api/food-detect", {
         method: "POST",
         body: formData,
       });
 
-      if (!predictRes.ok) {
-        const err = await predictRes.json();
-        throw new Error(err.error || "Failed to identify food");
+      const result = (await foodDetectRes.json()) as FoodDetectResponse;
+
+      if (!foodDetectRes.ok || !result.success || result.items.length === 0) {
+        throw new Error(result.error || "Failed to analyze food");
       }
 
-      const pred: Prediction = await predictRes.json();
-      setPrediction(pred);
+      setFoodItems(result.items);
+      setAnalysisSource(result.source);
       setStep("done");
-
-      // Step 2: Get nutrition
-      setIsLoadingNutrition(true);
-      setAnalyzeStep("Fetching nutrition data...");
-
-      const nutritionRes = await fetch("/api/nutrition", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ label: pred.label }),
-      });
-
-      if (!nutritionRes.ok) {
-        const err = await nutritionRes.json();
-        throw new Error(err.error || "Failed to get nutrition data");
-      }
-
-      const { nutrition: nut }: { nutrition: NutritionData } = await nutritionRes.json();
-      setNutrition(nut);
     } catch (err: unknown) {
       const e = err as Error;
       if (step !== "done") {
@@ -82,7 +83,6 @@ export default function Home() {
         setErrorMessage(e.message || "Something went wrong");
       }
     } finally {
-      setIsLoadingNutrition(false);
       setAnalyzeStep("");
     }
   };
@@ -91,8 +91,8 @@ export default function Home() {
     setStep("idle");
     setSelectedFile(null);
     setCameraFile(null);
-    setPrediction(null);
-    setNutrition(null);
+    setFoodItems([]);
+    setAnalysisSource(null);
     setErrorMessage(null);
   };
 
@@ -240,11 +240,10 @@ export default function Home() {
         )}
 
         {/* Result */}
-        {prediction && (
+        {foodItems.length > 0 && analysisSource && (
           <ResultCard
-            prediction={prediction}
-            nutrition={nutrition}
-            isLoadingNutrition={isLoadingNutrition}
+            items={foodItems}
+            source={analysisSource}
           />
         )}
 
@@ -266,7 +265,7 @@ export default function Home() {
         {/* Footer info */}
         <div className="text-center">
           <p className="text-xs" style={{ color: "var(--text-muted)", opacity: 0.5 }}>
-            HuggingFace · Gemini API · Next.js PWA
+            Gemini-first AI · HuggingFace fallback · Next.js PWA
           </p>
         </div>
       </div>
