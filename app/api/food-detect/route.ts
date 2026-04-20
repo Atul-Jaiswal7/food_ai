@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 export const runtime = "nodejs";
 
-const GEMINI_MODEL = "gemini-2.5-flash-lite";
+const GEMINI_MODEL = "gemini-2.5-flash";
 const HF_FOOD_MODEL_URL =
   "https://router.huggingface.co/hf-inference/models/nateraw/food";
 const MAX_IMAGE_BYTES = 8 * 1024 * 1024;

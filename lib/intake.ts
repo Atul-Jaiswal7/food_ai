@@ -1,7 +1,7 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { NutrientTargets, UserProfile } from "@/lib/types";
 
-const GEMINI_MODEL = "gemini-2.5-flash-lite";
+const GEMINI_MODEL = "gemini-2.5-flash";
 
 export const DEFAULT_INTAKE_TARGETS: NutrientTargets = {
   calories: "2000 kcal",
