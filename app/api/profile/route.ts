@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireUser } from "@/lib/auth";
 import { updateUser } from "@/lib/db";
+import { getGeminiIntakeTargets, normalizeIntakeTargets, normalizeProfile } from "@/lib/intake";
+import { NutrientTargets } from "@/lib/types";
 
 export const runtime = "nodejs";
 
@@ -22,15 +24,49 @@ export async function PATCH(req: NextRequest) {
   try {
     const user = await requireUser();
     const body = await req.json();
-    const { name, height, weight, gender } = body as Record<string, string>;
+    const {
+      name,
+      age,
+      height,
+      weight,
+      gender,
+      intakeTargets,
+      resetTargets,
+    } = body as Record<string, string | boolean | Partial<NutrientTargets>>;
+
+    const profile = normalizeProfile(user.profile);
+    const nextProfileBase = {
+      ...profile,
+      age: typeof age === "string" ? age.trim() || profile.age : profile.age,
+      height: typeof height === "string" ? height.trim() || profile.height : profile.height,
+      weight: typeof weight === "string" ? weight.trim() || profile.weight : profile.weight,
+      gender: typeof gender === "string" ? gender.trim() || profile.gender : profile.gender,
+    };
+
+    const shouldUseGeminiTargets = resetTargets === true;
+    const targetUpdate = shouldUseGeminiTargets
+      ? await getGeminiIntakeTargets(nextProfileBase)
+      : null;
 
     const updatedUser = await updateUser({
       ...user,
-      name: name?.trim() || user.name,
+      name: typeof name === "string" ? name.trim() || user.name : user.name,
       profile: {
-        height: height?.trim() || user.profile.height,
-        weight: weight?.trim() || user.profile.weight,
-        gender: gender?.trim() || user.profile.gender,
+        ...nextProfileBase,
+        intakeTargets: targetUpdate
+          ? targetUpdate.targets
+          : intakeTargets && typeof intakeTargets === "object"
+            ? normalizeIntakeTargets(intakeTargets)
+            : profile.intakeTargets,
+        intakeSource: targetUpdate
+          ? targetUpdate.source
+          : intakeTargets && typeof intakeTargets === "object"
+            ? "manual"
+            : profile.intakeSource,
+        intakeUpdatedAt:
+          targetUpdate || (intakeTargets && typeof intakeTargets === "object")
+            ? new Date().toISOString()
+            : profile.intakeUpdatedAt,
       },
     });
 

@@ -1,103 +1,115 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
-import path from "node:path";
-import { DatabaseShape, MealRecord, SessionRecord, UserRecord } from "@/lib/types";
+import { MongoClient, type Collection, type Db } from "mongodb";
+import { MealRecord, SessionRecord, UserRecord } from "@/lib/types";
 
-const DB_DIRECTORY = path.join(process.cwd(), "data");
-const DB_PATH = path.join(DB_DIRECTORY, "nutrilens-db.json");
+const DEFAULT_MONGODB_URI =
+  "mongodb://127.0.0.1:27017/?directConnection=true&serverSelectionTimeoutMS=2000&appName=mongosh+2.4.2";
+const DB_NAME = process.env.MONGODB_DB || "nutrilens";
 
-const defaultDatabase = (): DatabaseShape => ({
-  users: [],
-  sessions: [],
-  meals: [],
-});
+type MongoGlobal = typeof globalThis & {
+  _nutrilensMongoClient?: Promise<MongoClient>;
+  _nutrilensMongoIndexes?: Promise<void>;
+};
 
-let writeQueue = Promise.resolve();
+type Collections = {
+  users: Collection<UserRecord>;
+  sessions: Collection<SessionRecord>;
+  meals: Collection<MealRecord>;
+};
 
-async function ensureDbFile() {
-  await mkdir(DB_DIRECTORY, { recursive: true });
+const mongoGlobal = globalThis as MongoGlobal;
 
-  try {
-    await readFile(DB_PATH, "utf8");
-  } catch {
-    await writeFile(DB_PATH, JSON.stringify(defaultDatabase(), null, 2), "utf8");
+async function getClient() {
+  if (!mongoGlobal._nutrilensMongoClient) {
+    const uri = process.env.MONGODB_URI || DEFAULT_MONGODB_URI;
+    mongoGlobal._nutrilensMongoClient = new MongoClient(uri).connect();
   }
+
+  return mongoGlobal._nutrilensMongoClient;
 }
 
-export async function readDatabase(): Promise<DatabaseShape> {
-  await ensureDbFile();
-  const raw = await readFile(DB_PATH, "utf8");
-
-  try {
-    const parsed = JSON.parse(raw) as Partial<DatabaseShape>;
-    return {
-      users: parsed.users ?? [],
-      sessions: parsed.sessions ?? [],
-      meals: parsed.meals ?? [],
-    };
-  } catch {
-    return defaultDatabase();
-  }
+async function getDatabase(): Promise<Db> {
+  const client = await getClient();
+  return client.db(DB_NAME);
 }
 
-export async function writeDatabase(data: DatabaseShape) {
-  await ensureDbFile();
-  writeQueue = writeQueue.then(() =>
-    writeFile(DB_PATH, JSON.stringify(data, null, 2), "utf8")
-  );
-  await writeQueue;
+async function getCollections(): Promise<Collections> {
+  const db = await getDatabase();
+  await ensureIndexes(db);
+
+  return {
+    users: db.collection<UserRecord>("users"),
+    sessions: db.collection<SessionRecord>("sessions"),
+    meals: db.collection<MealRecord>("meals"),
+  };
+}
+
+async function ensureIndexes(db: Db) {
+  if (!mongoGlobal._nutrilensMongoIndexes) {
+    mongoGlobal._nutrilensMongoIndexes = Promise.all([
+      db.collection<UserRecord>("users").createIndex({ email: 1 }, { unique: true }),
+      db.collection<UserRecord>("users").createIndex({ id: 1 }, { unique: true }),
+      db.collection<SessionRecord>("sessions").createIndex({ token: 1 }, { unique: true }),
+      db.collection<SessionRecord>("sessions").createIndex({ userId: 1 }),
+      db.collection<MealRecord>("meals").createIndex({ userId: 1, createdAt: -1 }),
+    ]).then(() => undefined);
+  }
+
+  await mongoGlobal._nutrilensMongoIndexes;
 }
 
 export async function findUserByEmail(email: string) {
-  const db = await readDatabase();
-  return db.users.find((user) => user.email.toLowerCase() === email.toLowerCase()) ?? null;
+  const { users } = await getCollections();
+  return users.findOne({ email: email.toLowerCase() }, { projection: { _id: 0 } });
 }
 
 export async function findUserById(userId: string) {
-  const db = await readDatabase();
-  return db.users.find((user) => user.id === userId) ?? null;
+  const { users } = await getCollections();
+  return users.findOne({ id: userId }, { projection: { _id: 0 } });
 }
 
 export async function createUser(user: UserRecord) {
-  const db = await readDatabase();
-  db.users.push(user);
-  await writeDatabase(db);
+  const { users } = await getCollections();
+  await users.insertOne(user);
   return user;
 }
 
 export async function updateUser(updatedUser: UserRecord) {
-  const db = await readDatabase();
-  db.users = db.users.map((user) => (user.id === updatedUser.id ? updatedUser : user));
-  await writeDatabase(db);
+  const { users } = await getCollections();
+  await users.updateOne(
+    { id: updatedUser.id },
+    { $set: updatedUser },
+    { upsert: false }
+  );
   return updatedUser;
 }
 
 export async function createSession(session: SessionRecord) {
-  const db = await readDatabase();
-  db.sessions = db.sessions.filter((entry) => entry.userId !== session.userId);
-  db.sessions.push(session);
-  await writeDatabase(db);
+  const { sessions } = await getCollections();
+  await sessions.deleteMany({ userId: session.userId });
+  await sessions.insertOne(session);
   return session;
 }
 
 export async function findSession(token: string) {
-  const db = await readDatabase();
-  return db.sessions.find((session) => session.token === token) ?? null;
+  const { sessions } = await getCollections();
+  return sessions.findOne({ token }, { projection: { _id: 0 } });
 }
 
 export async function deleteSession(token: string) {
-  const db = await readDatabase();
-  db.sessions = db.sessions.filter((session) => session.token !== token);
-  await writeDatabase(db);
+  const { sessions } = await getCollections();
+  await sessions.deleteOne({ token });
 }
 
 export async function createMeal(meal: MealRecord) {
-  const db = await readDatabase();
-  db.meals.unshift(meal);
-  await writeDatabase(db);
+  const { meals } = await getCollections();
+  await meals.insertOne(meal);
   return meal;
 }
 
 export async function getMealsForUser(userId: string) {
-  const db = await readDatabase();
-  return db.meals.filter((meal) => meal.userId === userId);
+  const { meals } = await getCollections();
+  return meals
+    .find({ userId }, { projection: { _id: 0 } })
+    .sort({ createdAt: -1 })
+    .toArray();
 }

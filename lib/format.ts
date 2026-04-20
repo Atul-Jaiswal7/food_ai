@@ -12,6 +12,23 @@ export function extractNumber(value: string) {
   return match ? Number(match[0]) : 0;
 }
 
-export function sumNutrition(meals: MealRecord[], key: keyof Pick<MealRecord, "calories" | "protein" | "carbs" | "fat">) {
+export function sumNutrition(
+  meals: MealRecord[],
+  key: keyof Pick<
+    MealRecord,
+    | "calories"
+    | "protein"
+    | "carbs"
+    | "fat"
+    | "fiber"
+    | "sugar"
+    | "sodium"
+    | "potassium"
+    | "calcium"
+    | "iron"
+    | "vitaminA"
+    | "vitaminC"
+  >
+) {
   return meals.reduce((total, meal) => total + extractNumber(meal[key]), 0);
 }

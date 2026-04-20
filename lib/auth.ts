@@ -7,6 +7,7 @@ import {
   findSession,
   findUserById,
 } from "@/lib/db";
+import { normalizeProfile } from "@/lib/intake";
 import { UserRecord } from "@/lib/types";
 
 const SESSION_COOKIE = "nutrilens_session";
@@ -70,7 +71,13 @@ export async function getCurrentUser(): Promise<UserRecord | null> {
   const session = await findSession(token);
   if (!session) return null;
 
-  return findUserById(session.userId);
+  const user = await findUserById(session.userId);
+  return user
+    ? {
+        ...user,
+        profile: normalizeProfile(user.profile),
+      }
+    : null;
 }
 
 export async function requireUser() {

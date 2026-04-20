@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { findUserByEmail, createUser } from "@/lib/db";
 import { hashPassword, startSession } from "@/lib/auth";
+import { getGeminiIntakeTargets } from "@/lib/intake";
 
 export const runtime = "nodejs";
 
@@ -12,12 +13,13 @@ export async function POST(req: NextRequest) {
       name,
       email,
       password,
+      age,
       height,
       weight,
       gender,
     } = body as Record<string, string>;
 
-    if (!name || !email || !password || !height || !weight || !gender) {
+    if (!name || !email || !password || !age || !gender) {
       return NextResponse.json(
         { error: "Please fill in every sign up field." },
         { status: 400 }
@@ -32,6 +34,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const intake = await getGeminiIntakeTargets({ age, gender, height, weight });
+
     const user = await createUser({
       id: randomUUID(),
       name: name.trim(),
@@ -39,9 +43,13 @@ export async function POST(req: NextRequest) {
       passwordHash: hashPassword(password),
       createdAt: new Date().toISOString(),
       profile: {
-        height: height.trim(),
-        weight: weight.trim(),
+        age: age.trim(),
+        height: height?.trim() || "",
+        weight: weight?.trim() || "",
         gender: gender.trim(),
+        intakeTargets: intake.targets,
+        intakeSource: intake.source,
+        intakeUpdatedAt: new Date().toISOString(),
       },
     });
 
