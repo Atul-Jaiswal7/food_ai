@@ -77,7 +77,7 @@ export default function ScanPage() {
         throw new Error(result.error || "Failed to analyze food");
       }
 
-      setFoodItems(result.items.map((item) => ({ ...item, quantity: 1 })));
+      setFoodItems(result.items.map((item) => ({ ...item, quantity: "100" })));
       setGroupName(getGroupName(result.items));
       setAnalysisSource(result.source);
       setStep("done");
