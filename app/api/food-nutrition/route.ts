@@ -31,11 +31,11 @@ export async function POST(req: NextRequest) {
     const body = (await req.json()) as {
       name?: string;
       portion?: string;
-      quantity?: number;
+      quantity?: string;
     };
     const name = body.name?.trim();
-    const portion = body.portion?.trim() || "1 serving";
-    const quantity = Math.max(0.25, Number(body.quantity || 1));
+    const portion = body.portion?.trim() || "1";
+    const quantity = body.quantity?.trim() || "100g";
 
     if (!name) {
       return NextResponse.json({ error: "Food name is required." }, { status: 400 });
@@ -61,11 +61,11 @@ export async function POST(req: NextRequest) {
           content: `Estimate macro and micronutrients for this food item.
 
 Food: ${name}
-Portion: ${portion}
-Quantity multiplier: ${quantity}
+Portion (pieces/no.): ${portion}
+Quantity (grams/ml): ${quantity}
 Context: Indian food if unclear.
 
-Return values for the TOTAL quantity, not per 1 serving.
+Return values for the TOTAL combined amount.
 
 Return ONLY valid JSON:
 {
