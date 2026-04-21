@@ -1,101 +1,89 @@
-# 🍱 NutriLens — AI Food Nutrition PWA
+# NutriLens: AI-Powered Food Tracker
 
-A minimal Progressive Web App that detects food from photos and returns Indian-serving-size nutrition data using AI.
+NutriLens is a modern, premium Progressive Web Application (PWA) designed to simplify nutrition tracking using state-of-the-art AI. Users can scan their meals through images or manual entry to get instant nutritional breakdowns and track their progress over time.
 
-## Tech Stack
-- **Next.js 15** (App Router, TypeScript)
-- **Tailwind CSS** (dark theme, minimal UI)
-- **HuggingFace Inference API** — `nateraw/food` model for food classification
-- **Google Gemini 1.5 Flash** — nutrition data generation
-- **@ducanh2912/next-pwa** — PWA with offline fallback
+## 🚀 Key Features
 
-## Setup
+### 1. AI-Powered Food Recognition
+- **Dual-Provider Analysis**: Uses Google Gemini 2.5 Flash as the primary engine with a multi-model fallback system (Hugging Face + Grok/X.AI).
+- **Multi-Item Detection**: Recognizes multiple food items within a single image and provides individual nutrient breakdowns.
+- **Portion Estimation**: Intelligently estimates portion sizes and allows users to fine-tune quantities in grams.
 
-### 1. Install dependencies
-```bash
-npm install
+### 2. Comprehensive Nutrient Tracking
+- **Macro Nutrients**: Tracks Calories, Protein, Carbohydrates, Fats, Fiber, and Sugar.
+- **Micro Nutrients**: Tracks essential minerals and vitamins including Sodium, Potassium, Calcium, Iron, Vitamin A, and Vitamin C.
+- **Interactive Dashboards**: Visualizes daily intake vs. targets with dynamic progress rings and macro breakdowns.
+
+### 3. Smart Meal Log
+- **Historical Records**: Grouped meal view showing scanned items and their total nutritional value.
+- **Detailed Item Breakdown**: Expandable meal cards to view specific nutrients for every ingredient.
+- **Time Filtering**: Quickly filter history by "Today", "Week", and "Month".
+
+### 4. Personalization & Gamification
+- **User Profiles**: Customized intake targets based on age, height, weight, and gender.
+- **Streak System**: Encourages consistency with a 7-day streak tracker.
+- **Auth System**: Secure signup and login functionality.
+
+## 🛠️ Tech Stack
+
+- **Framework**: Next.js 14+ (App Router)
+- **Language**: TypeScript
+- **Styling**: Vanilla CSS + Tailwind CSS (for layout utilities)
+- **Database**: MongoDB (via `mongodb` driver)
+- **AI Models**: 
+  - Primary: Google Gemini 2.5 Flash
+  - Fallback 1: Hugging Face (Food Recognition)
+  - Fallback 2: Grok/X.AI (Nutrition Estimation)
+- **Authentication**: Custom JWT-based session management
+
+## 📁 Project Structure
+
+```text
+├── app/             # Next.js App Router root
+│   ├── api/         # Backend API routes
+│   ├── components/  # Reusable UI components
+│   ├── dashboard/   # User metrics and progress
+│   ├── meal-log/    # Meal history and filtering
+│   ├── profile/     # User settings and targets
+│   └── page.tsx     # Scanner Home page
+├── lib/             # Core logic, DB helpers, and types
+├── public/          # Static assets and icons
+└── styles/          # Global styles and design tokens
 ```
 
-### 2. Create `.env.local`
-```bash
-cp .env.local.example .env.local
-```
-Then fill in your keys:
-```
+## ⚙️ Environment Variables
+
+To run the project locally, create a `.env` file with the following:
+
+```env
+MONGODB_URI=your_mongodb_connection_string
+GEMINI_API_KEY=your_google_gemini_api_key
+GROK_API_KEY=your_xai_api_key
 HF_API_KEY=your_huggingface_api_key
-GEMINI_API_KEY=your_gemini_api_key
+FATSECRET_CLIENT_ID=your_fatsecret_id
+FATSECRET_CLIENT_SECRET=your_fatsecret_secret
+JWT_SECRET=your_secure_random_string
 ```
 
-**Get API keys:**
-- HuggingFace: https://huggingface.co/settings/tokens (free)
-- Gemini: https://aistudio.google.com/app/apikey (free tier available)
+## 📦 Getting Started
 
-### 3. Run development server
-```bash
-npm run dev
-```
+1.  **Install dependencies**:
+    ```bash
+    npm install
+    ```
+2.  **Run in development**:
+    ```bash
+    npm run dev
+    ```
+3.  **Build for production**:
+    ```bash
+    npm run build
+    ```
 
-### 4. Build for production
-```bash
-npm run build
-npm start
-```
+## ✨ Design Philosophy
 
-## Features
-
-### 📷 Camera Capture
-- Opens device back camera (mobile-first)
-- Live viewfinder with orange guide box
-- Capture → preview → retake flow
-- Graceful fallback to native camera input
-- Proper permission error messaging
-
-### 📁 Upload
-- Tap-to-select or drag-and-drop
-- Image preview before analysis
-- Works on all devices
-
-### 🤖 AI Pipeline
-1. Image → HuggingFace `nateraw/food` → food label + confidence score
-2. Food label → Gemini 1.5 Flash → structured nutrition JSON (Indian serving sizes)
-
-### 📊 Results
-- Food name (formatted from `fried_rice` → "Fried Rice")
-- Confidence % with colour-coded bar
-- Calories, Protein, Carbs, Fat, Fiber per serving
-- Serving size estimate
-- Top-3 alternative predictions
-
-### 📱 PWA
-- Installable on iOS & Android
-- Offline fallback page
-- Mobile-first responsive design
-- Theme colour and splash screen
-
-## Project Structure
-```
-app/
-  api/
-    predict/route.ts   — HuggingFace food classification
-    nutrition/route.ts — Gemini nutrition lookup
-  components/
-    CameraCapture.tsx  — Live camera + capture UI
-    UploadImage.tsx    — File upload + drag & drop
-    ResultCard.tsx     — Nutrition display card
-  page.tsx             — Main page (mode toggle, orchestration)
-  layout.tsx           — PWA meta tags, fonts
-  globals.css          — Design tokens, animations
-public/
-  manifest.json        — PWA manifest
-  offline.html         — Offline fallback
-```
-
-## API Routes
-
-### `POST /api/predict`
-- Body: `FormData` with `image` field (File)
-- Returns: `{ label, score, displayName, allPredictions }`
-
-### `POST /api/nutrition`
-- Body: `{ label: string }`
-- Returns: `{ nutrition: { calories, protein, carbs, fat, fiber, servingSize } }`
+NutriLens features a **premium, mobile-first design** with:
+- **Glassmorphism**: Blurred navigation and surface treatments.
+- **Micro-animations**: Smooth interactions and hover effects.
+- **Dynamic Palettes**: Consistent use of brand accents (`--accent`) for a cohesive feel.
+- **Accessibility**: Semantic HTML and descriptive ARIA labels.
