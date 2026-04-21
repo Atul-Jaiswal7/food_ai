@@ -7,8 +7,13 @@ import { NextResponse } from 'next/server';
  * If FatSecret fails, falls back to Grok API (simple placeholder).
  */
 export async function POST(request: Request) {
+  let name: string | undefined;
+  let quantity: string | undefined;
+
   try {
-    const { name, quantity } = await request.json();
+    const body = await request.json();
+    name = body.name;
+    quantity = body.quantity;
     if (!name) {
       return NextResponse.json({ message: 'Meal name is required' }, { status: 400 });
     }
