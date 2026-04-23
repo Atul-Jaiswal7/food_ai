@@ -27,7 +27,17 @@ interface FoodDetectItem {
   fats: string;
   fiber: string;
   sugar: string;
+  quantity: string;
   micronutrients: Micronutrients;
+  baseNutrientsPer100g?: {
+    calories: string;
+    protein: string;
+    carbs: string;
+    fats: string;
+    fiber: string;
+    sugar: string;
+    micronutrients: Micronutrients;
+  };
 }
 
 interface FoodDetectResponse {
@@ -77,7 +87,7 @@ export default function ScanPage() {
         throw new Error(result.error || "Failed to analyze food");
       }
 
-      setFoodItems(result.items.map((item) => ({ ...item, quantity: "100" })));
+      setFoodItems(result.items.map((item) => ({ ...item })));
       setGroupName(getGroupName(result.items));
       setAnalysisSource(result.source);
       setStep("done");
@@ -126,7 +136,7 @@ export default function ScanPage() {
         }),
       });
       const payload = (await response.json()) as {
-        item?: Omit<EditableFoodItem, "quantity">;
+        item?: EditableFoodItem;
         error?: string;
       };
 
@@ -137,12 +147,7 @@ export default function ScanPage() {
       const recalculatedItem = payload.item;
       setFoodItems((current) =>
         current.map((currentItem, currentIndex) =>
-          currentIndex === index
-            ? {
-                ...recalculatedItem,
-                quantity: item.quantity,
-              }
-            : currentItem
+          currentIndex === index ? recalculatedItem : currentItem
         )
       );
     } catch (error) {

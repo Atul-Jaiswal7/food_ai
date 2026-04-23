@@ -22,6 +22,15 @@ export interface EditableFoodItem {
   sugar: string;
   quantity: string;
   micronutrients: Micronutrients;
+  baseNutrientsPer100g?: {
+    calories: string;
+    protein: string;
+    carbs: string;
+    fats: string;
+    fiber: string;
+    sugar: string;
+    micronutrients: Micronutrients;
+  };
 }
 
 interface ResultCardProps {
@@ -91,7 +100,47 @@ export default function ResultCard({
   );
 
   const updateItem = (index: number, patch: Partial<EditableFoodItem>) => {
-    onItemsChange(items.map((item, itemIndex) => (itemIndex === index ? { ...item, ...patch } : item)));
+    onItemsChange(
+      items.map((item, itemIndex) => {
+        if (itemIndex !== index) return item;
+        
+        let updatedItem = { ...item, ...patch };
+
+        // If quantity changed and we have base nutrients, recalculate everything locally
+        if (patch.quantity !== undefined && item.baseNutrientsPer100g) {
+          const newQuantity = extractNumber(patch.quantity);
+          const multiplier = newQuantity / 100;
+          const base = item.baseNutrientsPer100g;
+
+          const multiply = (val: string) => {
+            const numMatch = val.match(/[\d.]+/);
+            if (!numMatch) return val;
+            const num = Number(numMatch[0]) * multiplier;
+            return val.replace(/[\d.]+/, String(Math.round(num * 10) / 10));
+          };
+
+          updatedItem = {
+            ...updatedItem,
+            calories: multiply(base.calories),
+            protein: multiply(base.protein),
+            carbs: multiply(base.carbs),
+            fats: multiply(base.fats),
+            fiber: multiply(base.fiber),
+            sugar: multiply(base.sugar),
+            micronutrients: {
+              sodium: multiply(base.micronutrients.sodium),
+              potassium: multiply(base.micronutrients.potassium),
+              calcium: multiply(base.micronutrients.calcium),
+              iron: multiply(base.micronutrients.iron),
+              vitaminA: multiply(base.micronutrients.vitaminA),
+              vitaminC: multiply(base.micronutrients.vitaminC),
+            },
+          };
+        }
+
+        return updatedItem;
+      })
+    );
   };
 
   const removeItem = (index: number) => {
@@ -124,20 +173,22 @@ export default function ResultCard({
 
       <div className="mt-5 flex flex-col gap-3">
         {items.map((item, index) => (
-          <article key={`${item.name}-${index}`} className="rounded-[1.25rem] p-4 shadow-sm border border-[var(--border)] transition-all" style={{ background: "var(--bg)" }}>
+          <article key={index} className="rounded-[1.25rem] p-4 shadow-sm border border-[var(--border)] transition-all" style={{ background: "var(--bg)" }}>
             <div className="flex items-start gap-3">
               <button
                 type="button"
                 onClick={() => setExpanded(expanded === index ? null : index)}
                 className="min-w-0 flex-1 text-left"
               >
-                <input
-                  value={item.name}
-                  onClick={(event) => event.stopPropagation()}
-                  onChange={(event) => updateItem(index, { name: event.target.value })}
-                  className="w-full bg-transparent text-base font-bold outline-none transition-colors focus:text-[var(--accent)]"
-                  placeholder="Food name"
-                />
+                <div className="rounded-xl border px-3 py-2 transition-colors focus-within:border-[var(--accent)]" style={{ borderColor: "var(--border)", background: "white" }}>
+                  <input
+                    value={item.name}
+                    onClick={(event) => event.stopPropagation()}
+                    onChange={(event) => updateItem(index, { name: event.target.value })}
+                    className="w-full bg-transparent text-base font-bold outline-none"
+                    placeholder="Enter food name..."
+                  />
+                </div>
                 <p className="mt-1 text-xs font-medium" style={{ color: "var(--text-muted)" }}>
                   {item.calories} • {item.portion} portion(s) • {item.quantity}g
                 </p>

@@ -104,7 +104,43 @@ Return ONLY valid JSON:
     }
 
     const item = normalizeItem(JSON.parse(cleanJson(text)));
-    return NextResponse.json({ item });
+    
+    // Also compute base nutrients per 100g for local recalculation
+    const quantityMatch = quantity.match(/[\d.]+/);
+    const qty = quantityMatch ? Number(quantityMatch[0]) : 100;
+    const multiplier = qty / 100;
+    
+    const reverseMultiply = (val: string) => {
+      const numMatch = val.match(/[\d.]+/);
+      if (!numMatch) return val;
+      const num = Number(numMatch[0]) / multiplier;
+      return val.replace(/[\d.]+/, String(Math.round(num * 10) / 10));
+    };
+
+    const baseNutrientsPer100g = {
+      calories: reverseMultiply(item.calories),
+      protein: reverseMultiply(item.protein),
+      carbs: reverseMultiply(item.carbs),
+      fats: reverseMultiply(item.fats),
+      fiber: reverseMultiply(item.fiber),
+      sugar: reverseMultiply(item.sugar),
+      micronutrients: {
+        sodium: reverseMultiply(item.micronutrients.sodium),
+        potassium: reverseMultiply(item.micronutrients.potassium),
+        calcium: reverseMultiply(item.micronutrients.calcium),
+        iron: reverseMultiply(item.micronutrients.iron),
+        vitaminA: reverseMultiply(item.micronutrients.vitaminA),
+        vitaminC: reverseMultiply(item.micronutrients.vitaminC),
+      },
+    };
+
+    return NextResponse.json({ 
+      item: { 
+        ...item, 
+        quantity,
+        baseNutrientsPer100g 
+      } 
+    });
   } catch (error) {
     console.error("Food nutrition error:", error);
     return NextResponse.json(
