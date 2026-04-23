@@ -1,0 +1,66 @@
+@import "tailwindcss";
+
+:root {
+  --accent: #5bb8a8;
+  --accent-dim: #3f9b8c;
+  --bg: #f6f7f8;
+  --surface: #ffffff;
+  --surface-2: #f0f3f4;
+  --border: #e6eaec;
+  --text: #172126;
+  --text-muted: #7a858b;
+  --font-display: "SF Pro Display", "Inter", "Segoe UI", sans-serif;
+  --font-body: "SF Pro Text", "Inter", "Segoe UI", sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  min-height: 100dvh;
+}
+
+a { text-decoration: none; }
+
+button, input, select {
+  font: inherit;
+}
+
+.font-display { font-family: var(--font-display); }
+
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes pulse-ring {
+  0% { transform: scale(1); opacity: 0.6; }
+  70% { transform: scale(1.4); opacity: 0; }
+  100% { transform: scale(1.4); opacity: 0; }
+}
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.animate-fade-in { animation: fadeIn 0.5s ease forwards; }
+
+.skeleton {
+  background: linear-gradient(90deg, var(--surface-2) 25%, #e8eef0 50%, var(--surface-2) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 8px;
+}
+
+.spinner {
+  width: 24px; height: 24px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin-slow 0.7s linear infinite;
+}

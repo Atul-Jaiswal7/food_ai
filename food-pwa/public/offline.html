@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NutriLens — Offline</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #0a0a0a;
+      color: #fff;
+      font-family: 'Georgia', serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      text-align: center;
+    }
+    .icon { font-size: 4rem; margin-bottom: 1.5rem; }
+    h1 { font-size: 2rem; color: #ff6b35; margin-bottom: 0.75rem; }
+    p { color: #888; max-width: 280px; line-height: 1.6; }
+    .retry {
+      margin-top: 2rem;
+      padding: 0.75rem 2rem;
+      background: #ff6b35;
+      color: white;
+      border: none;
+      border-radius: 2rem;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div>
+    <div class="icon">🍱</div>
+    <h1>You're Offline</h1>
+    <p>NutriLens needs a connection to analyze food. Please check your internet and try again.</p>
+    <button class="retry" onclick="window.location.reload()">Try Again</button>
+  </div>
+</body>
+</html>
